@@ -1,0 +1,97 @@
+{
+  "users": [
+    {
+      "id": "3290aed1-a1b3-4465-bb2d-dd35a6fe15ad",
+      "username": "admin",
+      "password": "$2a$10$3r6cMTJ3gnf8Q88NCBsIaeumhug8TzOgbovNny9SA93qDi4SnCTh6",
+      "role": "admin",
+      "ctvCode": "ADMIN"
+    },
+    {
+      "id": "23237d00-7189-468c-b427-6cd19fd6f1ff",
+      "username": "ctv01",
+      "password": "$2a$10$fo7xccmkz2wLeivIokxDM.pp.el7nTOlsdEgcUOyBF7HL/OQkw2ui",
+      "role": "ctv",
+      "ctvCode": "CTV01"
+    },
+    {
+      "id": "57d0c123-a83c-4a94-a72c-b255c417924a",
+      "username": "ctv_test",
+      "password": "$2a$10$Ne..WCEfTVv91jl5eGwdWOeDfyPzRE/MWPa0Ntv8exf6HtCfDMU/y",
+      "role": "ctv",
+      "ctvCode": "CTV02"
+    },
+    {
+      "id": "a9fc1ce8-00e7-42f0-b186-dffbf3731f89",
+      "username": "ctv_test1",
+      "password": "$2a$10$HOJ.SmU0mM790.vkDRd9N.sYfUf87ABH4UOA9QNhyjQiPT7NFyyWm",
+      "role": "ctv",
+      "ctvCode": "CTV03"
+    }
+  ],
+  "customers": [
+    {
+      "id": "804edca0-02f4-4376-ab09-dd0c87d90140",
+      "name": "Nguyễn Văn A",
+      "account": "ACC001",
+      "phone": "0901234567",
+      "package": "FiberMax",
+      "price": "200000",
+      "address": "123 Đường Trần Hưng Đạo, TP.HCM",
+      "lat": 11.580037,
+      "lng": 108.1,
+      "ctvCode": "CTV01"
+    },
+    {
+      "id": "99b1cd62-9349-4154-9648-e1e649f1c793",
+      "name": "Nguyễn Văn B",
+      "account": "l063_gftth_hattt1",
+      "phone": "09876516227",
+      "package": "Fibber mac",
+      "price": "180000",
+      "address": "62 ly thuong kiệt di linh",
+      "lat": 11.588127348095698,
+      "lng": 108.07851580622746,
+      "ctvCode": "CTV03"
+    },
+    {
+      "id": "7eac08ea-b216-42cf-9f1e-3beb894d8a6a",
+      "name": "Nguyễn Văn C",
+      "account": "ACC001",
+      "phone": "91111",
+      "package": "FiberMax",
+      "price": "200000",
+      "address": "333, TP.HCM",
+      "lat": null,
+      "lng": null,
+      "ctvCode": "CTV01"
+    },
+    {
+      "id": "98a55ea8-543b-4af3-9ee8-1fccc254d79b",
+      "name": "Nguyễn Văn D",
+      "account": "ACC001",
+      "phone": "90000000",
+      "package": "FiberMax",
+      "price": "200000",
+      "address": "555, TP.HCM",
+      "lat": 11.580464605036505,
+      "lng": 108.06896388530733,
+      "ctvCode": "CTV03"
+    },
+    {
+      "id": "4f3429e5-a522-4d5c-8eca-93e06283f0cb",
+      "name": "lê văn sang",
+      "account": "l063_gftth_sanglt1",
+      "phone": "09876522337",
+      "package": "Fibber mac",
+      "price": "180000",
+      "address": "122 trang hung dao di linh",
+      "lat": 11.574846719921434,
+      "lng": 108.06143760681154,
+      "ctvCode": "CTV01",
+      "billingType": "dong_truoc",
+      "prepaidPeriod": "3_thang",
+      "prepaidExpiry": "2026-02-28"
+    }
+  ]
+}

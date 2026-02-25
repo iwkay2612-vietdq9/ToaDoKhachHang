@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="Hệ thống quản lý khách hàng với bản đồ - ToaDo App">
+  <meta name="theme-color" content="#0a0e1a">
+  <title>ToaDo - Quản lý khách hàng</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📍</text></svg>">
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-bg"></div>
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="icon">📍</div>
+        <h1>ToaDo App</h1>
+        <p>Hệ thống quản lý khách hàng</p>
+      </div>
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="username">Tên đăng nhập</label>
+          <input type="text" id="username" class="form-input" placeholder="Nhập tên đăng nhập" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label for="password">Mật khẩu</label>
+          <input type="password" id="password" class="form-input" placeholder="Nhập mật khẩu" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="loginBtn">
+          Đăng nhập
+        </button>
+      </form>
+      <div id="loginError" style="margin-top: 16px; text-align: center; color: var(--danger); font-size: 13px; display: none;"></div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="/js/auth.js"></script>
+</body>
+</html>

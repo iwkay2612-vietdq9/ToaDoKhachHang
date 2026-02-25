@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Admin Dashboard - Quản lý khách hàng">
+    <meta name="theme-color" content="#0a0e1a">
+    <title>Admin - ToaDo App</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="manifest" href="/manifest.json">
+</head>
+
+<body>
+    <button class="mobile-toggle" id="menuToggle">☰</button>
+
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-icon">📍</div>
+                <div>
+                    <h2>ToaDo</h2>
+                    <small id="userDisplay">Admin</small>
+                </div>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="#" class="active" data-tab="customers"><span class="nav-icon">👥</span> Khách hàng</a></li>
+                <li><a href="#" data-tab="users"><span class="nav-icon">🔑</span> Quản lý CTV</a></li>
+                <li><a href="#" data-tab="map"><span class="nav-icon">🗺️</span> Bản đồ</a></li>
+                <li><a href="#" data-tab="editlogs"><span class="nav-icon">📝</span> Lịch sử sửa</a></li>
+            </ul>
+            <div class="sidebar-footer">
+                <a href="#" class="btn btn-secondary btn-block" id="logoutBtn"><span>🚪</span> Đăng xuất</a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- TAB: Customers -->
+            <div class="tab-content active" id="tab-customers">
+                <div class="page-header">
+                    <h1>👥 Quản lý khách hàng</h1>
+                    <div class="actions">
+                        <button class="btn btn-secondary btn-sm" id="downloadTemplate">📥 Tải Template</button>
+                        <button class="btn btn-secondary btn-sm" id="importExcel">📤 Import Excel</button>
+                        <button class="btn btn-success btn-sm" id="exportExcel">📊 Xuất Excel</button>
+                        <button class="btn btn-primary btn-sm" id="addCustomerBtn">➕ Thêm KH</button>
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card">
+                        <div class="stat-icon purple">👥</div>
+                        <div class="stat-value" id="statTotal">0</div>
+                        <div class="stat-label">Tổng khách hàng</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green">📍</div>
+                        <div class="stat-value" id="statCoord">0</div>
+                        <div class="stat-label">Có tọa độ</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange">⚠️</div>
+                        <div class="stat-value" id="statNoCoord">0</div>
+                        <div class="stat-label">Chưa có tọa độ</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon blue">🏷️</div>
+                        <div class="stat-value" id="statCtv">0</div>
+                        <div class="stat-label">Mã CTV</div>
+                    </div>
+                </div>
+
+                <!-- Customer Table -->
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3>Danh sách khách hàng</h3>
+                        <div class="search-box">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" id="searchInput" placeholder="Tìm kiếm khách hàng...">
+                        </div>
+                    </div>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>STT</th>
+                                    <th>Tên KH</th>
+                                    <th>Account</th>
+                                    <th>SĐT</th>
+                                    <th>Gói cước</th>
+                                    <th>Giá tiền</th>
+                                    <th>Loại cước</th>
+                                    <th>Địa chỉ</th>
+                                    <th>Tọa độ</th>
+                                    <th>Mã CTV</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customerTable"></tbody>
+                        </table>
+                    </div>
+                    <div class="empty-state" id="emptyState" style="display:none;">
+                        <div class="empty-icon">📋</div>
+                        <h3>Chưa có khách hàng</h3>
+                        <p>Thêm khách hàng mới hoặc import từ file Excel</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: User Management -->
+            <div class="tab-content" id="tab-users">
+                <div class="page-header">
+                    <h1>🔑 Quản lý CTV</h1>
+                    <div class="actions">
+                        <button class="btn btn-primary btn-sm" id="addUserBtn">➕ Thêm CTV</button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3>Danh sách thành viên</h3>
+                    </div>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>STT</th>
+                                    <th>Tên đăng nhập</th>
+                                    <th>Vai trò</th>
+                                    <th>Mã CTV</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: Map -->
+            <div class="tab-content" id="tab-map">
+                <div class="page-header">
+                    <h1>🗺️ Bản đồ khách hàng</h1>
+                </div>
+                <div class="map-container">
+                    <div class="map-header">
+                        <h3>Vị trí khách hàng</h3>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                            <button class="btn btn-sm btn-success" id="myLocationBtn">📍 Vị trí của tôi</button>
+                            <button class="btn btn-sm btn-primary" id="addCustomerAtLocationBtn">➕ Thêm KH tại
+                                đây</button>
+                            <div class="search-box">
+                                <span class="search-icon">🔍</span>
+                                <input type="text" id="mapSearchInput" placeholder="Tìm kiếm trên bản đồ...">
+                            </div>
+                        </div>
+                    </div>
+                    <div id="map"></div>
+                    <div class="routing-info" id="routingInfo">
+                        <div class="route-details">
+                            <span>📏 Khoảng cách: <strong id="routeDistance">-</strong></span>
+                            <span>⏱️ Thời gian: <strong id="routeTime">-</strong></span>
+                        </div>
+                        <button class="btn btn-sm btn-secondary" id="clearRoute">✕ Xóa đường đi</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: Edit Logs -->
+            <div class="tab-content" id="tab-editlogs">
+                <div class="page-header">
+                    <h1>📝 Lịch sử CTV sửa dữ liệu</h1>
+                </div>
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3>Nhật ký chỉnh sửa của CTV</h3>
+                    </div>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>STT</th>
+                                    <th>Thời gian</th>
+                                    <th>CTV</th>
+                                    <th>Khách hàng</th>
+                                    <th>Thay đổi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="editLogsTable"></tbody>
+                        </table>
+                    </div>
+                    <div class="empty-state" id="editLogsEmpty" style="display:none;">
+                        <div class="empty-icon">📝</div>
+                        <h3>Chưa có lịch sử sửa</h3>
+                        <p>CTV chưa sửa dữ liệu khách hàng nào</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Customer Modal -->
+    <div class="modal-overlay" id="customerModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="customerModalTitle">Thêm khách hàng</h3>
+                <button class="modal-close" onclick="closeModal('customerModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="customerForm">
+                    <input type="hidden" id="customerId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Tên khách hàng *</label>
+                            <input type="text" class="form-input" id="cName" placeholder="Nguyễn Văn A" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Account</label>
+                            <input type="text" class="form-input" id="cAccount" placeholder="ACC001">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Số điện thoại</label>
+                            <input type="text" class="form-input" id="cPhone" placeholder="0901234567">
+                        </div>
+                        <div class="form-group">
+                            <label>Mã CTV</label>
+                            <select class="form-input" id="cCtvCode">
+                                <option value="">-- Chọn CTV --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Gói cước</label>
+                            <input type="text" class="form-input" id="cPackage" placeholder="FiberMax">
+                        </div>
+                        <div class="form-group">
+                            <label>Giá tiền</label>
+                            <input type="text" class="form-input" id="cPrice" placeholder="200000">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Loại cước</label>
+                            <select class="form-input" id="cBillingType">
+                                <option value="hang_thang">Cước hàng tháng</option>
+                                <option value="dong_truoc">Cước đóng trước</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="prepaidFields" style="display:none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Kỳ đóng trước</label>
+                                <select class="form-input" id="cPrepaidPeriod">
+                                    <option value="3_thang">3 tháng</option>
+                                    <option value="6_thang">6 tháng</option>
+                                    <option value="1_nam">1 năm</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Ngày hết hạn cước</label>
+                                <input type="date" class="form-input" id="cPrepaidExpiry">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Địa chỉ</label>
+                        <input type="text" class="form-input" id="cAddress" placeholder="123 Đường ABC, TP.HCM">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Latitude</label>
+                            <input type="number" step="any" class="form-input" id="cLat" placeholder="10.7769">
+                        </div>
+                        <div class="form-group">
+                            <label>Longitude</label>
+                            <input type="number" step="any" class="form-input" id="cLng" placeholder="106.7009">
+                        </div>
+                    </div>
+                    <div style="margin-top: 4px;">
+                        <button type="button" class="btn btn-sm btn-success" id="getMyLocationBtn" style="width:100%">📍
+                            Lấy tọa độ hiện tại (GPS)</button>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('customerModal')">Hủy</button>
+                <button class="btn btn-primary" id="saveCustomerBtn">💾 Lưu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Modal -->
+    <div class="modal-overlay" id="userModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="userModalTitle">Thêm CTV</h3>
+                <button class="modal-close" onclick="closeModal('userModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="userForm">
+                    <input type="hidden" id="userId">
+                    <div class="form-group">
+                        <label>Tên đăng nhập *</label>
+                        <input type="text" class="form-input" id="uUsername" placeholder="ctv01" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Mật khẩu *</label>
+                        <input type="password" class="form-input" id="uPassword" placeholder="********" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Mã CTV *</label>
+                        <input type="text" class="form-input" id="uCtvCode" placeholder="CTV01" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('userModal')">Hủy</button>
+                <button class="btn btn-primary" id="saveUserBtn">💾 Lưu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Modal -->
+    <div class="modal-overlay" id="importModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Import từ Excel</h3>
+                <button class="modal-close" onclick="closeModal('importModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="upload-zone" id="uploadZone">
+                    <div class="upload-icon">📤</div>
+                    <p>Click để chọn file Excel (.xlsx, .xls)</p>
+                    <small>Hoặc kéo thả file vào đây</small>
+                    <input type="file" id="excelFile" accept=".xlsx,.xls" style="display:none">
+                </div>
+                <div style="margin-top:16px; text-align:center;">
+                    <button class="btn btn-sm btn-secondary" id="downloadTemplate2">📥 Tải file mẫu</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('importModal')">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/admin.js"></script>
+</body>
+
+</html>
