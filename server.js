@@ -256,6 +256,27 @@ app.delete('/api/customers/:id', authMiddleware, adminOnly, (req, res) => {
   res.json({ success: true });
 });
 
+// ========== BULK DELETE ==========
+app.post('/api/customers/bulk-delete', authMiddleware, adminOnly, (req, res) => {
+  const { ids, deleteAll } = req.body;
+  const db = readDB();
+  if (deleteAll) {
+    const count = db.customers.length;
+    db.customers = [];
+    writeDB(db);
+    return res.json({ success: true, count });
+  }
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ error: 'Chưa chọn khách hàng để xóa' });
+  }
+  const idsSet = new Set(ids);
+  const before = db.customers.length;
+  db.customers = db.customers.filter(c => !idsSet.has(c.id));
+  const deleted = before - db.customers.length;
+  writeDB(db);
+  res.json({ success: true, count: deleted });
+});
+
 // ========== EXCEL IMPORT ==========
 app.post('/api/customers/import', authMiddleware, adminOnly, upload.single('file'), (req, res) => {
   try {
@@ -264,12 +285,30 @@ app.post('/api/customers/import', authMiddleware, adminOnly, upload.single('file
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(sheet);
     const db = readDB();
-    const imported = [];
 
-    rows.forEach(row => {
+    // Build valid CTV codes list
+    const validCtvCodes = new Set(db.users.filter(u => u.role === 'ctv').map(u => u.ctvCode));
+
+    const imported = [];
+    const errors = [];
+
+    rows.forEach((row, idx) => {
+      const ctvCode = String(row['Mã CTV'] || row['ctvCode'] || '').trim();
+      const name = String(row['Tên khách hàng'] || row['name'] || '').trim();
+
+      // Validate ctvCode exists in CTV list
+      if (!ctvCode) {
+        errors.push({ row: idx + 2, name, ctvCode, reason: 'Thiếu mã CTV' });
+        return;
+      }
+      if (!validCtvCodes.has(ctvCode)) {
+        errors.push({ row: idx + 2, name, ctvCode, reason: `Mã CTV "${ctvCode}" không tồn tại trong danh sách CTV` });
+        return;
+      }
+
       const customer = {
         id: uuidv4(),
-        name: String(row['Tên khách hàng'] || row['name'] || ''),
+        name: name,
         account: String(row['Account'] || row['account'] || ''),
         phone: String(row['Số điện thoại'] || row['phone'] || ''),
         package: String(row['Gói cước'] || row['package'] || ''),
@@ -277,7 +316,7 @@ app.post('/api/customers/import', authMiddleware, adminOnly, upload.single('file
         address: String(row['Địa chỉ'] || row['address'] || ''),
         lat: parseFloat(row['Latitude'] || row['lat']) || null,
         lng: parseFloat(row['Longitude'] || row['lng']) || null,
-        ctvCode: String(row['Mã CTV'] || row['ctvCode'] || ''),
+        ctvCode: ctvCode,
         billingType: String(row['Loại cước'] || row['billingType'] || 'hang_thang'),
         prepaidPeriod: String(row['Kỳ đóng trước'] || row['prepaidPeriod'] || ''),
         prepaidExpiry: String(row['Ngày hết hạn cước'] || row['prepaidExpiry'] || '')
@@ -289,7 +328,7 @@ app.post('/api/customers/import', authMiddleware, adminOnly, upload.single('file
     writeDB(db);
     // Clean up uploaded file
     fs.unlinkSync(req.file.path);
-    res.json({ count: imported.length, customers: imported });
+    res.json({ count: imported.length, customers: imported, errors });
   } catch (err) {
     res.status(500).json({ error: 'Lỗi đọc file Excel: ' + err.message });
   }

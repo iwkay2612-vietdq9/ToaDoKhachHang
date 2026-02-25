@@ -14,6 +14,7 @@
     let routeLine = null;
     let routeControl = null;
     let myLocationMarker = null;
+    let selectedIds = new Set();
 
     // ===== TAB SWITCHING =====
     document.querySelectorAll('.sidebar-nav a').forEach(link => {
@@ -77,8 +78,30 @@
     }
 
     // ===== CUSTOMER TABLE =====
+    function getFilteredCustomers() {
+        const filters = {};
+        document.querySelectorAll('.filter-input').forEach(input => {
+            const field = input.dataset.field;
+            const val = input.value.trim();
+            if (val) filters[field] = val;
+        });
+
+        let list = customers;
+        Object.keys(filters).forEach(field => {
+            const val = filters[field].toLowerCase();
+            if (field === 'hasCoord') {
+                list = list.filter(c => val === 'yes' ? (c.lat && c.lng) : !(c.lat && c.lng));
+            } else if (field === 'billingType') {
+                list = list.filter(c => (c.billingType || 'hang_thang') === filters[field]);
+            } else {
+                list = list.filter(c => (String(c[field] || '')).toLowerCase().includes(val));
+            }
+        });
+        return list;
+    }
+
     function renderCustomerTable(data) {
-        const list = data || customers;
+        const list = data || getFilteredCustomers();
         const tbody = document.getElementById('customerTable');
         const empty = document.getElementById('emptyState');
 
@@ -99,8 +122,10 @@
                 const expiryText = c.prepaidExpiry ? formatDateVN(c.prepaidExpiry) : '';
                 billingLabel = `ĐT ${periodText}` + (expiryText ? `<br><small style="opacity:0.8">HH: ${expiryText}</small>` : '');
             }
+            const checked = selectedIds.has(c.id) ? 'checked' : '';
             return `
       <tr>
+        <td><input type="checkbox" class="row-check" data-id="${c.id}" ${checked}></td>
         <td>${i + 1}</td>
         <td style="font-weight:600; color:var(--text-primary)">${escHtml(c.name)}</td>
         <td>${escHtml(c.account)}</td>
@@ -125,6 +150,28 @@
       </tr>
     `;
         }).join('');
+
+        // Bind checkbox events
+        tbody.querySelectorAll('.row-check').forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                if (e.target.checked) selectedIds.add(e.target.dataset.id);
+                else selectedIds.delete(e.target.dataset.id);
+                updateSelectionUI();
+            });
+        });
+        updateSelectionUI();
+    }
+
+    function updateSelectionUI() {
+        const count = selectedIds.size;
+        document.getElementById('selectedCount').textContent = count;
+        document.getElementById('deleteSelectedBtn').style.display = count > 0 ? 'inline-flex' : 'none';
+        const allCheckboxes = document.querySelectorAll('.row-check');
+        const selectAll = document.getElementById('selectAll');
+        if (allCheckboxes.length > 0) {
+            selectAll.checked = allCheckboxes.length === count;
+            selectAll.indeterminate = count > 0 && count < allCheckboxes.length;
+        }
     }
 
     // ===== USER TABLE =====
@@ -164,6 +211,82 @@
                 renderCustomerTable(results);
             }
         }, 300);
+    });
+
+    // ===== MULTI-FIELD FILTER =====
+    document.querySelectorAll('.filter-input').forEach(input => {
+        input.addEventListener('input', () => {
+            document.getElementById('searchInput').value = '';
+            renderCustomerTable();
+        });
+        input.addEventListener('change', () => {
+            document.getElementById('searchInput').value = '';
+            renderCustomerTable();
+        });
+    });
+
+    document.getElementById('clearFilters').addEventListener('click', () => {
+        document.querySelectorAll('.filter-input').forEach(input => {
+            if (input.tagName === 'SELECT') input.selectedIndex = 0;
+            else input.value = '';
+        });
+        document.getElementById('searchInput').value = '';
+        renderCustomerTable();
+    });
+
+    // ===== SELECT ALL CHECKBOX =====
+    document.getElementById('selectAll').addEventListener('change', (e) => {
+        const checked = e.target.checked;
+        document.querySelectorAll('.row-check').forEach(cb => {
+            if (checked) selectedIds.add(cb.dataset.id);
+            else selectedIds.delete(cb.dataset.id);
+            cb.checked = checked;
+        });
+        updateSelectionUI();
+    });
+
+    // ===== BULK DELETE =====
+    document.getElementById('deleteSelectedBtn').addEventListener('click', async () => {
+        const count = selectedIds.size;
+        if (count === 0) return;
+        if (!confirm(`Xóa ${count} khách hàng đã chọn?`)) return;
+        try {
+            const res = await apiCall('/api/customers/bulk-delete', {
+                method: 'POST',
+                body: JSON.stringify({ ids: Array.from(selectedIds) })
+            });
+            if (res && res.ok) {
+                const data = await res.json();
+                showToast(`Đã xóa ${data.count} khách hàng`, 'success');
+                selectedIds.clear();
+                loadCustomers();
+            }
+        } catch (e) {
+            showToast('Lỗi kết nối server', 'error');
+        }
+    });
+
+    document.getElementById('deleteAllBtn').addEventListener('click', async () => {
+        if (customers.length === 0) {
+            showToast('Không có khách hàng nào để xóa', 'error');
+            return;
+        }
+        if (!confirm(`Xóa TẤT CẢ ${customers.length} khách hàng? Hành động này không thể hoàn tác!`)) return;
+        if (!confirm('Bạn có CHẮC CHẮN muốn xóa tất cả khách hàng?')) return;
+        try {
+            const res = await apiCall('/api/customers/bulk-delete', {
+                method: 'POST',
+                body: JSON.stringify({ deleteAll: true })
+            });
+            if (res && res.ok) {
+                const data = await res.json();
+                showToast(`Đã xóa tất cả ${data.count} khách hàng`, 'success');
+                selectedIds.clear();
+                loadCustomers();
+            }
+        } catch (e) {
+            showToast('Lỗi kết nối server', 'error');
+        }
     });
 
     // ===== CTV CODES FOR DROPDOWN =====
@@ -372,8 +495,31 @@
             });
             const data = await res.json();
             if (res.ok) {
-                showToast(`Đã import ${data.count} khách hàng thành công!`, 'success');
                 closeModal('importModal');
+                // Show detailed result
+                let html = '';
+                if (data.count > 0) {
+                    html += `<div style="padding:12px;background:rgba(34,197,94,0.15);border-radius:8px;margin-bottom:12px;">
+                        <strong style="color:#22c55e;">✅ Import thành công: ${data.count} khách hàng</strong>
+                    </div>`;
+                }
+                if (data.errors && data.errors.length > 0) {
+                    html += `<div style="padding:12px;background:rgba(239,68,68,0.15);border-radius:8px;margin-bottom:12px;">
+                        <strong style="color:#ef4444;">⚠️ Lỗi: ${data.errors.length} dòng không import được</strong>
+                    </div>`;
+                    html += '<table style="width:100%;font-size:13px;border-collapse:collapse;">';
+                    html += '<thead><tr style="background:rgba(99,102,241,0.1);"><th style="padding:6px 8px;text-align:left;">Dòng</th><th style="padding:6px 8px;text-align:left;">Tên KH</th><th style="padding:6px 8px;text-align:left;">Mã CTV</th><th style="padding:6px 8px;text-align:left;">Lý do</th></tr></thead>';
+                    html += '<tbody>';
+                    data.errors.forEach(err => {
+                        html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.06);"><td style="padding:6px 8px;">${err.row}</td><td style="padding:6px 8px;">${escHtml(err.name)}</td><td style="padding:6px 8px;"><span class="badge badge-red">${escHtml(err.ctvCode || '(trống)')}</span></td><td style="padding:6px 8px;color:#ef4444;">${escHtml(err.reason)}</td></tr>`;
+                    });
+                    html += '</tbody></table>';
+                }
+                if (!data.count && (!data.errors || data.errors.length === 0)) {
+                    html = '<p>File không có dữ liệu.</p>';
+                }
+                document.getElementById('importResultBody').innerHTML = html;
+                openModal('importResultModal');
                 loadCustomers();
             } else {
                 showToast(data.error || 'Lỗi import', 'error');

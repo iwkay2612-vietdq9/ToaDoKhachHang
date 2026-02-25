@@ -47,6 +47,11 @@
                         <button class="btn btn-secondary btn-sm" id="importExcel">📤 Import Excel</button>
                         <button class="btn btn-success btn-sm" id="exportExcel">📊 Xuất Excel</button>
                         <button class="btn btn-primary btn-sm" id="addCustomerBtn">➕ Thêm KH</button>
+                        <button class="btn btn-sm" id="deleteSelectedBtn"
+                            style="background:#ef4444;color:#fff;display:none;">🗑️ Xóa đã chọn (<span
+                                id="selectedCount">0</span>)</button>
+                        <button class="btn btn-sm" id="deleteAllBtn" style="background:#dc2626;color:#fff;">🗑️ Xóa tất
+                            cả</button>
                     </div>
                 </div>
 
@@ -80,13 +85,15 @@
                         <h3>Danh sách khách hàng</h3>
                         <div class="search-box">
                             <span class="search-icon">🔍</span>
-                            <input type="text" id="searchInput" placeholder="Tìm kiếm khách hàng...">
+                            <input type="text" id="searchInput" placeholder="Tìm kiếm nhanh...">
                         </div>
                     </div>
                     <div class="table-scroll">
                         <table>
                             <thead>
                                 <tr>
+                                    <th style="width:40px;"><input type="checkbox" id="selectAll" title="Chọn tất cả">
+                                    </th>
                                     <th>STT</th>
                                     <th>Tên KH</th>
                                     <th>Account</th>
@@ -98,6 +105,40 @@
                                     <th>Tọa độ</th>
                                     <th>Mã CTV</th>
                                     <th>Thao tác</th>
+                                </tr>
+                                <tr id="filterRow" style="background:rgba(99,102,241,0.08);">
+                                    <th></th>
+                                    <th></th>
+                                    <th><input type="text" class="filter-input" data-field="name"
+                                            placeholder="Lọc tên..."></th>
+                                    <th><input type="text" class="filter-input" data-field="account"
+                                            placeholder="Lọc account..."></th>
+                                    <th><input type="text" class="filter-input" data-field="phone"
+                                            placeholder="Lọc SĐT..."></th>
+                                    <th><input type="text" class="filter-input" data-field="package"
+                                            placeholder="Lọc gói..."></th>
+                                    <th><input type="text" class="filter-input" data-field="price"
+                                            placeholder="Lọc giá..."></th>
+                                    <th>
+                                        <select class="filter-input" data-field="billingType" style="min-width:90px;">
+                                            <option value="">Tất cả</option>
+                                            <option value="hang_thang">Hàng tháng</option>
+                                            <option value="dong_truoc">Đóng trước</option>
+                                        </select>
+                                    </th>
+                                    <th><input type="text" class="filter-input" data-field="address"
+                                            placeholder="Lọc ĐC..."></th>
+                                    <th>
+                                        <select class="filter-input" data-field="hasCoord" style="min-width:80px;">
+                                            <option value="">Tất cả</option>
+                                            <option value="yes">Có</option>
+                                            <option value="no">Chưa có</option>
+                                        </select>
+                                    </th>
+                                    <th><input type="text" class="filter-input" data-field="ctvCode"
+                                            placeholder="Lọc CTV..."></th>
+                                    <th><button class="btn btn-sm btn-secondary" id="clearFilters"
+                                            style="font-size:11px;padding:2px 8px;">✕ Xóa lọc</button></th>
                                 </tr>
                             </thead>
                             <tbody id="customerTable"></tbody>
@@ -414,6 +455,20 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('importModal')">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Result Modal -->
+    <div class="modal-overlay" id="importResultModal">
+        <div class="modal" style="max-width:600px;">
+            <div class="modal-header">
+                <h3>📋 Kết quả Import</h3>
+                <button class="modal-close" onclick="closeModal('importResultModal')">✕</button>
+            </div>
+            <div class="modal-body" id="importResultBody" style="max-height:400px;overflow-y:auto;"></div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeModal('importResultModal')">Đóng</button>
             </div>
         </div>
     </div>
