@@ -127,9 +127,9 @@
       <tr>
         <td><input type="checkbox" class="row-check" data-id="${c.id}" ${checked}></td>
         <td>${i + 1}</td>
-        <td style="font-weight:600; color:var(--text-primary)">${escHtml(c.name)}</td>
+        <td><a href="#" class="customer-name-link" onclick="showCustomerDetail('${c.id}');return false;">${escHtml(c.name)}</a></td>
         <td>${escHtml(c.account)}</td>
-        <td>${escHtml(c.phone)}</td>
+        <td>${escHtml(c.phone)}${c.phone ? ` <a href="tel:${escHtml(c.phone)}" class="call-btn-inline" title="Gọi ${escHtml(c.phone)}">📞</a>` : ''}</td>
         <td><span class="badge badge-purple">${escHtml(c.package)}</span></td>
         <td>${escHtml(formatPrice(c.price))}</td>
         <td><span class="badge ${billingBadge}">${billingLabel}</span></td>
@@ -398,6 +398,48 @@
         }
     };
 
+    // ===== CUSTOMER DETAIL POPUP =====
+    window.showCustomerDetail = function (id) {
+        const c = customers.find(x => x.id === id);
+        if (!c) return;
+
+        const billingTypeMap = { 'hang_thang': 'Cước hàng tháng', 'dong_truoc': 'Cước đóng trước' };
+        const periodMap = { '3_thang': '3 tháng', '6_thang': '6 tháng', '1_nam': '1 năm' };
+        const billingText = billingTypeMap[c.billingType] || 'Hàng tháng';
+
+        let prepaidHtml = '';
+        if (c.billingType === 'dong_truoc') {
+            prepaidHtml = `
+                <div class="detail-row"><span class="detail-label">⏳ Kỳ đóng trước</span><span class="detail-value">${periodMap[c.prepaidPeriod] || c.prepaidPeriod || '-'}</span></div>
+                <div class="detail-row"><span class="detail-label">📅 Ngày hết hạn</span><span class="detail-value">${c.prepaidExpiry ? formatDateVN(c.prepaidExpiry) : '-'}</span></div>
+            `;
+        }
+
+        const coordText = (c.lat && c.lng) ? `${Number(c.lat).toFixed(6)}, ${Number(c.lng).toFixed(6)}` : 'Chưa có';
+
+        document.getElementById('customerDetailBody').innerHTML = `
+            <div class="customer-detail-grid">
+                <div class="detail-row"><span class="detail-label">👤 Tên KH</span><span class="detail-value" style="font-size:16px;font-weight:700;">${escHtml(c.name)}</span></div>
+                <div class="detail-row"><span class="detail-label">🔑 Account</span><span class="detail-value">${escHtml(c.account) || '-'}</span></div>
+                <div class="detail-row"><span class="detail-label">📞 SĐT</span><span class="detail-value">${c.phone ? `${escHtml(c.phone)} <a href="tel:${escHtml(c.phone)}" class="call-btn" title="Gọi ${escHtml(c.phone)}">📱 Gọi</a>` : '-'}</span></div>
+                <div class="detail-row"><span class="detail-label">📦 Gói cước</span><span class="detail-value"><span class="badge badge-purple">${escHtml(c.package) || '-'}</span></span></div>
+                <div class="detail-row"><span class="detail-label">💰 Giá tiền</span><span class="detail-value" style="color:#22c55e;font-weight:600;">${formatPrice(c.price) || '-'}</span></div>
+                <div class="detail-row"><span class="detail-label">💳 Loại cước</span><span class="detail-value">${billingText}</span></div>
+                ${prepaidHtml}
+                <div class="detail-row"><span class="detail-label">📍 Địa chỉ</span><span class="detail-value">${escHtml(c.address) || '-'}</span></div>
+                <div class="detail-row"><span class="detail-label">🗺️ Tọa độ</span><span class="detail-value">${coordText}</span></div>
+                <div class="detail-row"><span class="detail-label">🏷️ Mã CTV</span><span class="detail-value"><span class="badge badge-green">${escHtml(c.ctvCode) || '-'}</span></span></div>
+            </div>
+        `;
+
+        document.getElementById('detailEditBtn').onclick = function () {
+            closeModal('customerDetailModal');
+            editCustomer(c.id);
+        };
+
+        openModal('customerDetailModal');
+    };
+
     // ===== USER MODAL =====
     document.getElementById('addUserBtn').addEventListener('click', () => {
         document.getElementById('userModalTitle').textContent = 'Thêm CTV';
@@ -569,6 +611,9 @@
     });
 
     // ===== MAP =====
+    let allMapCustomers = []; // Store all customers with coords for zoom filtering
+    let isMapSearchActive = false;
+
     function initAdminMap() {
         if (adminMap) {
             adminMap.invalidateSize();
@@ -585,12 +630,29 @@
         setTimeout(() => adminMap.invalidateSize(), 200);
         loadMapMarkers();
 
+        // Zoom-based marker filtering
+        adminMap.on('zoomend', () => {
+            if (!isMapSearchActive) {
+                updateVisibleMarkers();
+            }
+        });
+        adminMap.on('moveend', () => {
+            if (!isMapSearchActive) {
+                updateVisibleMarkers();
+            }
+        });
+
         // Map search
         document.getElementById('mapSearchInput').addEventListener('input', (e) => {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
                 const q = e.target.value.trim().toLowerCase();
-                if (!q) { loadMapMarkers(); return; }
+                if (!q) {
+                    isMapSearchActive = false;
+                    loadMapMarkers();
+                    return;
+                }
+                isMapSearchActive = true;
                 const filtered = customers.filter(c =>
                     c.lat && c.lng && (
                         (c.name || '').toLowerCase().includes(q) ||
@@ -599,19 +661,72 @@
                         (c.package || '').toLowerCase().includes(q) ||
                         (c.address || '').toLowerCase().includes(q))
                 );
-                renderMapMarkers(filtered);
+                renderMapMarkers(filtered, true);
             }, 300);
         });
     }
 
     function loadMapMarkers() {
-        const withCoord = customers.filter(c => c.lat && c.lng);
-        renderMapMarkers(withCoord);
+        allMapCustomers = customers.filter(c => c.lat && c.lng);
+        // Initial render with bounds fitting
+        renderMapMarkers(allMapCustomers, true);
     }
 
-    function renderMapMarkers(list) {
+    function getZoomFilteredMarkers(list) {
+        if (!adminMap) return list;
+        const zoom = adminMap.getZoom();
+        const bounds = adminMap.getBounds();
+
+        // Filter to only markers within current map bounds
+        let visible = list.filter(c => bounds.contains([c.lat, c.lng]));
+
+        // At low zoom levels, limit markers to avoid lag
+        let maxMarkers;
+        if (zoom <= 8) {
+            maxMarkers = 50;
+        } else if (zoom <= 10) {
+            maxMarkers = 100;
+        } else if (zoom <= 12) {
+            maxMarkers = 200;
+        } else {
+            maxMarkers = Infinity; // Show all at high zoom
+        }
+
+        if (visible.length > maxMarkers) {
+            // Sample evenly from the list
+            const step = visible.length / maxMarkers;
+            const sampled = [];
+            for (let i = 0; i < maxMarkers; i++) {
+                sampled.push(visible[Math.floor(i * step)]);
+            }
+            visible = sampled;
+        }
+
+        return visible;
+    }
+
+    function updateVisibleMarkers() {
+        if (!adminMap || allMapCustomers.length === 0) return;
+        const filtered = getZoomFilteredMarkers(allMapCustomers);
+        renderMapMarkers(filtered, false);
+    }
+
+    function updateMarkerCountBadge(showing, total) {
+        const badge = document.getElementById('markerCountBadge');
+        if (total === 0) {
+            badge.style.display = 'none';
+            return;
+        }
+        badge.style.display = 'inline-block';
+        badge.textContent = `📍 ${showing}/${total} điểm`;
+    }
+
+    function renderMapMarkers(list, fitBounds) {
         adminMarkers.forEach(m => adminMap.removeLayer(m));
         adminMarkers = [];
+
+        const totalWithCoord = allMapCustomers.length || list.length;
+        updateMarkerCountBadge(list.length, totalWithCoord);
 
         if (list.length === 0) return;
 
@@ -623,21 +738,22 @@
             bounds.push([c.lat, c.lng]);
         });
 
-        if (bounds.length > 0) {
+        if (fitBounds && bounds.length > 0) {
             adminMap.fitBounds(bounds, { padding: [30, 30] });
         }
     }
 
     function createPopupContent(c) {
         return `
-      <div class="popup-title">${escHtml(c.name)}</div>
+      <div class="popup-title"><a href="#" onclick="showCustomerDetail('${c.id}');return false;" style="color:inherit;text-decoration:none;">${escHtml(c.name)}</a></div>
       <div class="popup-info">
-        <span>📞 <a href="tel:${escHtml(c.phone)}" style="color:#22c55e;text-decoration:none;font-weight:600;" title="Gọi ${escHtml(c.phone)}">📱 ${escHtml(c.phone)}</a></span>
+        <span>📞 ${escHtml(c.phone)} ${c.phone ? `<a href="tel:${escHtml(c.phone)}" class="call-btn" title="Gọi ${escHtml(c.phone)}">📱 Gọi</a>` : ''}</span>
         <span>📦 <strong>${escHtml(c.package)}</strong> - ${escHtml(formatPrice(c.price))}</span>
         <span>📍 <strong>${escHtml(c.address)}</strong></span>
         <span>🏷️ CTV: <strong>${escHtml(c.ctvCode)}</strong></span>
       </div>
       <div class="popup-actions">
+        <button class="popup-btn directions" onclick="showCustomerDetail('${c.id}')">👤 Chi tiết</button>
         <button class="popup-btn directions" onclick="editCustomer('${c.id}')">✏️ Sửa</button>
         <button class="popup-btn directions" onclick="getDirections(${c.lat}, ${c.lng})">🧭 Chỉ đường</button>
       </div>

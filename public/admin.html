@@ -193,6 +193,8 @@
                             <button class="btn btn-sm btn-success" id="myLocationBtn">📍 Vị trí của tôi</button>
                             <button class="btn btn-sm btn-primary" id="addCustomerAtLocationBtn">➕ Thêm KH tại
                                 đây</button>
+                            <span id="markerCountBadge" class="badge badge-purple"
+                                style="font-size:12px;padding:6px 12px;display:none;"></span>
                             <div class="search-box">
                                 <span class="search-icon">🔍</span>
                                 <input type="text" id="mapSearchInput" placeholder="Tìm kiếm trên bản đồ...">
@@ -469,6 +471,21 @@
             <div class="modal-body" id="importResultBody" style="max-height:400px;overflow-y:auto;"></div>
             <div class="modal-footer">
                 <button class="btn btn-primary" onclick="closeModal('importResultModal')">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Detail Modal -->
+    <div class="modal-overlay" id="customerDetailModal">
+        <div class="modal" style="max-width:520px;">
+            <div class="modal-header">
+                <h3>👤 Thông tin khách hàng</h3>
+                <button class="modal-close" onclick="closeModal('customerDetailModal')">✕</button>
+            </div>
+            <div class="modal-body" id="customerDetailBody"></div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('customerDetailModal')">Đóng</button>
+                <button class="btn btn-primary" id="detailEditBtn">✏️ Sửa</button>
             </div>
         </div>
     </div>

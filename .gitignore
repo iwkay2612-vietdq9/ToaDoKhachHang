@@ -3,3 +3,4 @@ npm-debug.log
 uploads/export_khachhang.xlsx
 uploads/template.xlsx
 .DS_Store
+data/
