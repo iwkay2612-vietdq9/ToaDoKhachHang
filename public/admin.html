@@ -104,6 +104,7 @@
                                     <th>Địa chỉ</th>
                                     <th>Tọa độ</th>
                                     <th>Mã CTV</th>
+                                    <th>Tiếp xúc</th>
                                     <th>Thao tác</th>
                                 </tr>
                                 <tr id="filterRow" style="background:rgba(99,102,241,0.08);">
@@ -137,6 +138,13 @@
                                     </th>
                                     <th><input type="text" class="filter-input" data-field="ctvCode"
                                             placeholder="Lọc CTV..."></th>
+                                    <th>
+                                        <select class="filter-input" data-field="contactStatus" style="min-width:90px;">
+                                            <option value="">Tất cả</option>
+                                            <option value="da_goi">Đã gọi</option>
+                                            <option value="chua_goi">Chưa gọi</option>
+                                        </select>
+                                    </th>
                                     <th><button class="btn btn-sm btn-secondary" id="clearFilters"
                                             style="font-size:11px;padding:2px 8px;">✕ Xóa lọc</button></th>
                                 </tr>
@@ -360,6 +368,13 @@
                             <select class="form-input" id="cBillingType">
                                 <option value="hang_thang">Cước hàng tháng</option>
                                 <option value="dong_truoc">Cước đóng trước</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Tiếp xúc</label>
+                            <select class="form-input" id="cContactStatus">
+                                <option value="chua_goi">Chưa gọi</option>
+                                <option value="da_goi">Đã gọi</option>
                             </select>
                         </div>
                     </div>

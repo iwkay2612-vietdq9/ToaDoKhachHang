@@ -174,7 +174,8 @@ app.get('/api/customers', authMiddleware, async (req, res) => {
       name: c.name, account: c.account, phone: c.phone,
       package: c.package, price: c.price, address: c.address,
       lat: c.lat, lng: c.lng, ctvCode: c.ctvCode,
-      billingType: c.billingType, prepaidPeriod: c.prepaidPeriod, prepaidExpiry: c.prepaidExpiry
+      billingType: c.billingType, prepaidPeriod: c.prepaidPeriod, prepaidExpiry: c.prepaidExpiry,
+      contactStatus: c.contactStatus
     })));
   } catch (err) {
     res.status(500).json({ error: 'Lỗi server' });
@@ -205,7 +206,8 @@ app.get('/api/customers/search', authMiddleware, async (req, res) => {
       name: c.name, account: c.account, phone: c.phone,
       package: c.package, price: c.price, address: c.address,
       lat: c.lat, lng: c.lng, ctvCode: c.ctvCode,
-      billingType: c.billingType, prepaidPeriod: c.prepaidPeriod, prepaidExpiry: c.prepaidExpiry
+      billingType: c.billingType, prepaidPeriod: c.prepaidPeriod, prepaidExpiry: c.prepaidExpiry,
+      contactStatus: c.contactStatus
     })));
   } catch (err) {
     res.status(500).json({ error: 'Lỗi server' });
@@ -214,7 +216,7 @@ app.get('/api/customers/search', authMiddleware, async (req, res) => {
 
 app.post('/api/customers', authMiddleware, adminOnly, async (req, res) => {
   try {
-    const { name, account, phone, package: pkg, price, address, lat, lng, ctvCode, billingType, prepaidPeriod, prepaidExpiry } = req.body;
+    const { name, account, phone, package: pkg, price, address, lat, lng, ctvCode, billingType, prepaidPeriod, prepaidExpiry, contactStatus } = req.body;
     if (!name) return res.status(400).json({ error: 'Thiếu tên khách hàng' });
     const customer = await Customer.create({
       name: name || '',
@@ -228,14 +230,16 @@ app.post('/api/customers', authMiddleware, adminOnly, async (req, res) => {
       ctvCode: ctvCode || '',
       billingType: billingType || 'hang_thang',
       prepaidPeriod: prepaidPeriod || '',
-      prepaidExpiry: prepaidExpiry || ''
+      prepaidExpiry: prepaidExpiry || '',
+      contactStatus: contactStatus || 'chua_goi'
     });
     res.json({
       id: customer._id.toString(),
       name: customer.name, account: customer.account, phone: customer.phone,
       package: customer.package, price: customer.price, address: customer.address,
       lat: customer.lat, lng: customer.lng, ctvCode: customer.ctvCode,
-      billingType: customer.billingType, prepaidPeriod: customer.prepaidPeriod, prepaidExpiry: customer.prepaidExpiry
+      billingType: customer.billingType, prepaidPeriod: customer.prepaidPeriod, prepaidExpiry: customer.prepaidExpiry,
+      contactStatus: customer.contactStatus
     });
   } catch (err) {
     res.status(500).json({ error: 'Lỗi server: ' + err.message });
@@ -283,7 +287,7 @@ app.put('/api/customers/:id', authMiddleware, async (req, res) => {
       }
     } else {
       // Admin can update everything
-      const fields = ['name', 'account', 'phone', 'package', 'price', 'address', 'lat', 'lng', 'ctvCode', 'billingType', 'prepaidPeriod', 'prepaidExpiry'];
+      const fields = ['name', 'account', 'phone', 'package', 'price', 'address', 'lat', 'lng', 'ctvCode', 'billingType', 'prepaidPeriod', 'prepaidExpiry', 'contactStatus'];
       fields.forEach(f => {
         if (req.body[f] !== undefined) customer[f] = req.body[f];
       });
@@ -294,7 +298,8 @@ app.put('/api/customers/:id', authMiddleware, async (req, res) => {
       name: customer.name, account: customer.account, phone: customer.phone,
       package: customer.package, price: customer.price, address: customer.address,
       lat: customer.lat, lng: customer.lng, ctvCode: customer.ctvCode,
-      billingType: customer.billingType, prepaidPeriod: customer.prepaidPeriod, prepaidExpiry: customer.prepaidExpiry
+      billingType: customer.billingType, prepaidPeriod: customer.prepaidPeriod, prepaidExpiry: customer.prepaidExpiry,
+      contactStatus: customer.contactStatus
     });
   } catch (err) {
     res.status(500).json({ error: 'Lỗi server: ' + err.message });
@@ -359,6 +364,8 @@ app.post('/api/customers/import', authMiddleware, adminOnly, upload.single('file
         continue;
       }
 
+      const contactVal = String(row['Tiếp xúc'] || row['contactStatus'] || '').trim().toLowerCase();
+      const contactStatus = (contactVal === 'da_goi' || contactVal === 'đã gọi') ? 'da_goi' : 'chua_goi';
       const customer = await Customer.create({
         name: name,
         account: String(row['Account'] || row['account'] || ''),
@@ -371,7 +378,8 @@ app.post('/api/customers/import', authMiddleware, adminOnly, upload.single('file
         ctvCode: ctvCode,
         billingType: String(row['Loại cước'] || row['billingType'] || 'hang_thang'),
         prepaidPeriod: String(row['Kỳ đóng trước'] || row['prepaidPeriod'] || ''),
-        prepaidExpiry: String(row['Ngày hết hạn cước'] || row['prepaidExpiry'] || '')
+        prepaidExpiry: String(row['Ngày hết hạn cước'] || row['prepaidExpiry'] || ''),
+        contactStatus: contactStatus
       });
       imported.push({
         id: customer._id.toString(),
@@ -392,12 +400,12 @@ app.post('/api/customers/import', authMiddleware, adminOnly, upload.single('file
 app.get('/api/template', (req, res) => {
   const wb = XLSX.utils.book_new();
   const data = [
-    ['Tên khách hàng', 'Account', 'Số điện thoại', 'Gói cước', 'Giá tiền', 'Địa chỉ', 'Latitude', 'Longitude', 'Mã CTV', 'Loại cước', 'Kỳ đóng trước', 'Ngày hết hạn cước'],
-    ['Nguyễn Văn A', 'ACC001', '0901234567', 'FiberMax', '200000', '123 Đường ABC, TP.HCM', '10.7769', '106.7009', 'CTV01', 'dong_truoc', '6_thang', '2026-08-25']
+    ['Tên khách hàng', 'Account', 'Số điện thoại', 'Gói cước', 'Giá tiền', 'Địa chỉ', 'Latitude', 'Longitude', 'Mã CTV', 'Loại cước', 'Kỳ đóng trước', 'Ngày hết hạn cước', 'Tiếp xúc'],
+    ['Nguyễn Văn A', 'ACC001', '0901234567', 'FiberMax', '200000', '123 Đường ABC, TP.HCM', '10.7769', '106.7009', 'CTV01', 'dong_truoc', '6_thang', '2026-08-25', 'chua_goi']
   ];
   const ws = XLSX.utils.aoa_to_sheet(data);
   ws['!cols'] = [
-    { wch: 20 }, { wch: 12 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 15 }, { wch: 15 }, { wch: 18 }
+    { wch: 20 }, { wch: 12 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 12 }
   ];
   XLSX.utils.book_append_sheet(wb, ws, 'KhachHang');
   const filePath = path.join(__dirname, 'uploads', 'template.xlsx');
@@ -429,20 +437,21 @@ app.get('/api/customers/export', async (req, res) => {
     }
     const customers = await Customer.find(filter);
     const data = [
-      ['Tên khách hàng', 'Account', 'Số điện thoại', 'Gói cước', 'Giá tiền', 'Địa chỉ', 'Latitude', 'Longitude', 'Mã CTV', 'Loại cước', 'Kỳ đóng trước', 'Ngày hết hạn cước']
+      ['Tên khách hàng', 'Account', 'Số điện thoại', 'Gói cước', 'Giá tiền', 'Địa chỉ', 'Latitude', 'Longitude', 'Mã CTV', 'Loại cước', 'Kỳ đóng trước', 'Ngày hết hạn cước', 'Tiếp xúc']
     ];
     customers.forEach(c => {
       data.push([
         c.name || '', c.account || '', c.phone || '', c.package || '',
         c.price || '', c.address || '',
         c.lat || '', c.lng || '', c.ctvCode || '',
-        c.billingType || 'hang_thang', c.prepaidPeriod || '', c.prepaidExpiry || ''
+        c.billingType || 'hang_thang', c.prepaidPeriod || '', c.prepaidExpiry || '',
+        c.contactStatus || 'chua_goi'
       ]);
     });
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(data);
     ws['!cols'] = [
-      { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 35 }, { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 15 }, { wch: 15 }, { wch: 18 }
+      { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 35 }, { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 12 }
     ];
     XLSX.utils.book_append_sheet(wb, ws, 'KhachHang');
     const filePath = path.join(__dirname, 'uploads', 'export_khachhang.xlsx');

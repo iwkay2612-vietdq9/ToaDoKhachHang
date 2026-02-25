@@ -93,6 +93,8 @@
                 list = list.filter(c => val === 'yes' ? (c.lat && c.lng) : !(c.lat && c.lng));
             } else if (field === 'billingType') {
                 list = list.filter(c => (c.billingType || 'hang_thang') === filters[field]);
+            } else if (field === 'contactStatus') {
+                list = list.filter(c => (c.contactStatus || 'chua_goi') === filters[field]);
             } else {
                 list = list.filter(c => (String(c[field] || '')).toLowerCase().includes(val));
             }
@@ -123,6 +125,8 @@
                 billingLabel = `ĐT ${periodText}` + (expiryText ? `<br><small style="opacity:0.8">HH: ${expiryText}</small>` : '');
             }
             const checked = selectedIds.has(c.id) ? 'checked' : '';
+            const contactLabel = (c.contactStatus === 'da_goi') ? 'Đã gọi' : 'Chưa gọi';
+            const contactBadge = (c.contactStatus === 'da_goi') ? 'badge-green' : 'badge-red';
             return `
       <tr>
         <td><input type="checkbox" class="row-check" data-id="${c.id}" ${checked}></td>
@@ -141,6 +145,7 @@
                 }
         </td>
         <td><span class="badge badge-green">${escHtml(c.ctvCode)}</span></td>
+        <td><span class="badge ${contactBadge}">${contactLabel}</span></td>
         <td>
           <div class="action-btns">
             <button class="action-btn edit" title="Sửa" onclick="editCustomer('${c.id}')">✏️</button>
@@ -320,6 +325,7 @@
         document.getElementById('customerId').value = '';
         document.getElementById('cBillingType').value = 'hang_thang';
         document.getElementById('prepaidFields').style.display = 'none';
+        document.getElementById('cContactStatus').value = 'chua_goi';
         await loadCtvCodes();
         openModal('customerModal');
     });
@@ -345,6 +351,7 @@
         } else {
             document.getElementById('prepaidFields').style.display = 'none';
         }
+        document.getElementById('cContactStatus').value = c.contactStatus || 'chua_goi';
         await loadCtvCodes(c.ctvCode || '');
         openModal('customerModal');
     };
@@ -364,7 +371,8 @@
             ctvCode: document.getElementById('cCtvCode').value.trim(),
             billingType: billingType,
             prepaidPeriod: billingType === 'dong_truoc' ? document.getElementById('cPrepaidPeriod').value : '',
-            prepaidExpiry: billingType === 'dong_truoc' ? document.getElementById('cPrepaidExpiry').value : ''
+            prepaidExpiry: billingType === 'dong_truoc' ? document.getElementById('cPrepaidExpiry').value : '',
+            contactStatus: document.getElementById('cContactStatus').value
         };
 
         if (!data.name) {
@@ -416,6 +424,8 @@
         }
 
         const coordText = (c.lat && c.lng) ? `${Number(c.lat).toFixed(6)}, ${Number(c.lng).toFixed(6)}` : 'Chưa có';
+        const contactStatusText = (c.contactStatus === 'da_goi') ? 'Đã gọi' : 'Chưa gọi';
+        const contactBadgeClass = (c.contactStatus === 'da_goi') ? 'badge-green' : 'badge-red';
 
         document.getElementById('customerDetailBody').innerHTML = `
             <div class="customer-detail-grid">
@@ -429,6 +439,7 @@
                 <div class="detail-row"><span class="detail-label">📍 Địa chỉ</span><span class="detail-value">${escHtml(c.address) || '-'}</span></div>
                 <div class="detail-row"><span class="detail-label">🗺️ Tọa độ</span><span class="detail-value">${coordText}</span></div>
                 <div class="detail-row"><span class="detail-label">🏷️ Mã CTV</span><span class="detail-value"><span class="badge badge-green">${escHtml(c.ctvCode) || '-'}</span></span></div>
+                <div class="detail-row"><span class="detail-label">📱 Tiếp xúc</span><span class="detail-value"><span class="badge ${contactBadgeClass}">${contactStatusText}</span></span></div>
             </div>
         `;
 

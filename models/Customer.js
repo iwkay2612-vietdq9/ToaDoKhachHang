@@ -12,7 +12,8 @@ const customerSchema = new mongoose.Schema({
     ctvCode: { type: String, default: '' },
     billingType: { type: String, default: 'hang_thang' },
     prepaidPeriod: { type: String, default: '' },
-    prepaidExpiry: { type: String, default: '' }
+    prepaidExpiry: { type: String, default: '' },
+    contactStatus: { type: String, default: 'chua_goi' }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Customer', customerSchema);
